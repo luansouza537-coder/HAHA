@@ -1,0 +1,6 @@
+{
+  "name": "CultivaMente",
+  "description": "Um gerenciador de estudos gamificado completo (Estudo Tracker) com sistema de plantação de árvores virtuais, Pomodoro, controle de questões, revisões espaçadas, e registro multimídia de livros, artigos, filmes e podcasts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

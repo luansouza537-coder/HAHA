@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom colors used across CultivaMente's UI to resolve visual rendering and contrast issues */
+  --color-gray-55: #f1f5f9;
+  --color-gray-105: #f4f6f8;
+  --color-gray-150: #e2e8f0;
+  --color-gray-205: #cbd5e1;
+  --color-gray-450: #94a3b8;
+  --color-gray-455: #94a3b8;
+  --color-gray-550: #64748b;
+  --color-gray-650: #4b5563;
+  --color-gray-750: #334155;
+  --color-gray-850: #1e293b;
+  --color-gray-955: #0b0f19;
+  --color-gray-950: #0f172a;
+
+  --color-indigo-55: #f0f2ff;
+  --color-violet-55: #f5f3ff;
+
+  --color-emerald-250: #a7f3d0;
+  --color-emerald-455: #34d399;
+  --color-emerald-450: #34d399;
+  --color-emerald-555: #10b981;
+  --color-emerald-650: #059669;
+  --color-emerald-850: #064e3b;
+
+  --color-rose-250: #fecdd3;
+  --color-rose-355: #fda4af;
+  --color-rose-350: #fda4af;
+  --color-rose-455: #f43f5e;
+  --color-rose-550: #fb7185;
+  --color-rose-650: #be123c;
+
+  --color-teal-555: #14b8a6;
+  --color-teal-550: #14b8a6;
+  --color-teal-650: #0f766e;
+
+  --color-cyan-550: #06b6d4;
+  --color-cyan-605: #0891b2;
+  --color-cyan-650: #0e7490;
+  --color-cyan-850: #164e63;
+
+  --color-neutral-550: #737373;
+  --color-neutral-850: #262626;
+  --color-neutral-850: #1c1c1c;
+
+  --color-amber-250: #fcd34d;
+  --color-amber-955: #451a03;
+  --color-blue-250: #93c5fd;
+  
+  --color-purple-650: #7c3aed;
+  --color-purple-850: #581c87;
+  --color-purple-955: #3b0764;
+  
+  --color-orange-850: #7c2d12;
+  --color-fuchsia-150: #fae8ff;
+  --color-fuchsia-955: #4a044e;
+  
+  --color-red-555: #ef4444;
+  --color-red-650: #b91c1c;
+
+  --color-sky-450: #38bdf8;
+}
