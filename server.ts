@@ -8,6 +8,23 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '1mb' }));
 
+// Simple in-memory rate limiter: max 30 Gemini calls per IP per minute
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+function geminiRateLimit(req: any, res: any, next: any) {
+  const ip = req.ip || 'unknown';
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+    return next();
+  }
+  if (entry.count >= 30) {
+    return res.status(429).json({ error: 'Limite de requisições atingido. Tente novamente em 1 minuto.' });
+  }
+  entry.count++;
+  next();
+}
+
 // Lazy-loaded Gemini AI client to prevent crash on startup if API key is not present
 let aiInstance: GoogleGenAI | null = null;
 function getAI(): GoogleGenAI {
@@ -34,7 +51,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // Gemini endpoint to generate flashcards from study notes
-app.post("/api/gemini/generate-flashcards", async (req: any, res: any) => {
+app.post("/api/gemini/generate-flashcards", geminiRateLimit, async (req: any, res: any) => {
   try {
     const { titulo, assunto, conteudo } = req.body;
     if (!conteudo || conteudo.trim().length === 0) {
@@ -92,7 +109,7 @@ ${conteudo}
       }
     });
 
-    const rawText = response.text || "[]";
+    const rawText = (response.text ?? "[]");
     let parsed = JSON.parse(rawText);
 
     // Sanitize difficulty values to comply with the client's strict types
@@ -122,7 +139,7 @@ ${conteudo}
 });
 
 // Gemini endpoint to generate flashcards based on subject with possible notes context
-app.post("/api/gemini/generate-flashcards-by-subject", async (req: any, res: any) => {
+app.post("/api/gemini/generate-flashcards-by-subject", geminiRateLimit, async (req: any, res: any) => {
   try {
     const { assunto, notasRelacionadas } = req.body;
     if (!assunto || assunto.trim().length === 0) {
@@ -175,7 +192,7 @@ ${notasRelacionadas}
       }
     });
 
-    const rawText = response.text || "[]";
+    const rawText = (response.text ?? "[]");
     let parsed = JSON.parse(rawText);
 
     // Sanitize difficulty values to comply with the client's strict types
@@ -205,7 +222,7 @@ ${notasRelacionadas}
 });
 
 // Gemini endpoint to explain any active study card with analogies and mnemonics
-app.post("/api/gemini/explain-card", async (req: any, res: any) => {
+app.post("/api/gemini/explain-card", geminiRateLimit, async (req: any, res: any) => {
   try {
     const { pergunta, resposta, assunto } = req.body;
     if (!pergunta) {
@@ -253,7 +270,7 @@ ${resposta || ""}
       contents: prompt,
     });
 
-    return res.json({ explanation: response.text });
+    return res.json({ explanation: response.text ?? "" });
   } catch (error: any) {
     console.error("Erro na rota explicar card:", error);
     return res.status(500).json({ error: error.message || "Falha ao gerar explicação com IA." });

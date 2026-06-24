@@ -379,23 +379,65 @@ export function useAppState() {
     else localStorage.removeItem('gardenEvent');
   }, [gardenEvent]);
 
-  // Auto-backup with debounce
+  // Auto-backup with debounce — uses ref to avoid stale closure
   useEffect(() => {
     if (!isLoadedRef.current) return;
-    if (!gardenSettings.autoBackupEnabled) return;
-    const timer = setTimeout(() => handleAutoBackup(), 1000);
+    if (!gardenSettingsRef.current.autoBackupEnabled) return;
+    const timer = setTimeout(() => {
+      if (!gardenSettingsRef.current.autoBackupEnabled) return;
+      try {
+        const payload = {
+          questoes: localStorage.getItem('questoes'),
+          revisoes: localStorage.getItem('revisoes'),
+          leituras: localStorage.getItem('leituras'),
+          materias: localStorage.getItem('materias'),
+          sessoesEstudo: localStorage.getItem('sessoesEstudo'),
+          plantedTrees: localStorage.getItem('plantedTrees'),
+          streakData: localStorage.getItem('streakData'),
+          gardenSettings: localStorage.getItem('gardenSettings'),
+          estufaFotos: localStorage.getItem('estufaFotos'),
+          metas: localStorage.getItem('metas'),
+          anotacoes: localStorage.getItem('anotacoes'),
+          flashcards: localStorage.getItem('flashcards'),
+          achievements: localStorage.getItem('achievements'),
+          timelineEvents: localStorage.getItem('timelineEvents'),
+          gardenEvent: localStorage.getItem('gardenEvent'),
+        };
+        localStorage.setItem('cultivamente_auto_backup', JSON.stringify({ app: "CultivaMente", version: "1.2.0", timestamp: new Date().toISOString(), payload }));
+      } catch (e) {
+        console.error('Falha ao realizar backup automático', e);
+      }
+    }, 1000);
     return () => clearTimeout(timer);
   }, [questoes, revisoes, anotacoes, flashcards, sessoesEstudo, materias, leituras, plantedTrees, streak, fotos]);
 
   // Trigger biome achievement when extra biomes are unlocked
   useEffect(() => {
+    if (!isLoadedRef.current) return;
     if (gardenSettings.unlockedBiomes && gardenSettings.unlockedBiomes.length > 1) {
-      triggerUnlockAchievement('4');
+      const id = '4';
+      if (unlockedAchievementsRef.current.has(id)) return;
+      const ach = achievementsRef.current.find(a => a.id === id);
+      if (ach && !ach.desbloqueado) {
+        unlockedAchievementsRef.current.add(id);
+        setAchievements(prev => prev.map(a => a.id === id ? { ...a, desbloqueado: true, dataDesbloqueio: getTodayDate() } : a));
+        setGardenSettings(prev => ({ ...prev, focusPoints: prev.focusPoints + ach.xpBonus }));
+      }
     }
   }, [gardenSettings.unlockedBiomes?.length]);
 
-  // Reset reviewed session on new day
-  useEffect(() => { setReviewedThisSession([]); }, [getTodayDate()]);
+  // Reset reviewed session on new day — uses a ref to detect actual day changes
+  const todayRef = useRef(getTodayDate());
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newDay = getTodayDate();
+      if (newDay !== todayRef.current) {
+        todayRef.current = newDay;
+        setReviewedThisSession([]);
+      }
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Keep selectedTreeForNurture in sync with plantedTrees
   useEffect(() => {
@@ -512,7 +554,7 @@ export function useAppState() {
 
     const grupoId = 'ciclo_' + generateUniqueStringId();
     const scheduledReviews: Revisao[] = metas.intervalosCiclo.map((dias, index) => ({
-      id: generateUniqueNumericId() + index,
+      id: generateUniqueNumericId(),
       conteudo: conteudoNome,
       nivel: 1,
       ultima: conteudoData,
@@ -571,12 +613,12 @@ export function useAppState() {
   };
 
   const handleRemoveConteudo = (materiaId: number, conteudoId: string, grupoId: string) => {
+    const oldMaterias = [...materiasRef.current];
+    const oldRevs = [...revisoesRef.current];
     setConfirmModal({
       title: "Excluir Conteúdo",
       message: "Tem certeza de que deseja excluir este conteúdo e suas revisões associadas?",
       onConfirm: () => {
-        const oldMaterias = [...materiasRef.current];
-        const oldRevs = [...revisoesRef.current];
         setMaterias(prev => prev.map(m => {
           if (m.id === materiaId) return { ...m, conteudos: m.conteudos.filter(c => c.id !== conteudoId) };
           return m;
@@ -702,11 +744,11 @@ export function useAppState() {
   };
 
   const handleDeleteNota = (id: number) => {
+    const oldNotes = [...anotacoesRef.current];
     setConfirmModal({
       title: "Excluir Anotação",
       message: "Tem certeza de que deseja excluir esta anotação?",
       onConfirm: () => {
-        const oldNotes = [...anotacoesRef.current];
         setAnotacoes(prev => prev.filter(n => n.id !== id));
         if (nNotaAtivaId === id) { setNNotaAtivaId(null); setNTitulo(''); setNConteudo(''); setNAssunto(''); }
         showToast('Anotação removida.', 'info');
@@ -729,8 +771,8 @@ export function useAppState() {
       if (!response.ok) throw new Error('Falha de resposta do servidor de IA.');
       const data = await response.json();
       if (data.flashcards && Array.isArray(data.flashcards) && data.flashcards.length > 0) {
-        const generatedFc: Flashcard[] = data.flashcards.map((fc: any, index: number) => ({
-          id: generateUniqueNumericId() + index,
+        const generatedFc: Flashcard[] = data.flashcards.map((fc: any) => ({
+          id: generateUniqueNumericId(),
           pergunta: fc.pergunta,
           resposta: fc.resposta,
           assunto: nAssunto || 'Geral',
@@ -982,8 +1024,8 @@ export function useAppState() {
       if (!response.ok) throw new Error('Falha de resposta ao conectar com a Estufo do Gemini.');
       const data = await response.json();
       if (data.flashcards && Array.isArray(data.flashcards) && data.flashcards.length > 0) {
-        const generated: Flashcard[] = data.flashcards.map((fc: any, idx: number) => ({
-          id: generateUniqueNumericId() + idx,
+        const generated: Flashcard[] = data.flashcards.map((fc: any) => ({
+          id: generateUniqueNumericId(),
           pergunta: fc.pergunta,
           resposta: fc.resposta,
           assunto: subjectName,
@@ -1193,7 +1235,7 @@ export function useAppState() {
   };
 
   const handleAutoBackup = () => {
-    if (!gardenSettings.autoBackupEnabled) return;
+    if (!gardenSettingsRef.current.autoBackupEnabled) return;
     try {
       localStorage.setItem('cultivamente_auto_backup', JSON.stringify({ app: "CultivaMente", version: "1.2.0", timestamp: new Date().toISOString(), payload: getBackupPayload() }));
     } catch (e) {
@@ -1317,11 +1359,11 @@ export function useAppState() {
   };
 
   const handleRemoveLeitura = (id: number) => {
+    const old = [...leiturasRef.current];
     setConfirmModal({
       title: "Excluir Registro de Leitura",
       message: "Tem certeza de que deseja excluir permanentemente este registro de leitura de suas estatísticas?",
       onConfirm: () => {
-        const old = [...leiturasRef.current];
         setLeituras(prev => prev.filter(l => l.id !== id));
         addUndoAction(`Remover leitura`, () => setLeituras(old));
       }

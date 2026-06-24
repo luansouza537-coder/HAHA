@@ -85,6 +85,7 @@ export default function App() {
     addTimelineEvent,
     handleAddConteudo,
     handleRemoveConteudo,
+    handleSaveNotes,
     handleMarkRevisaoCompleted,
     handleAddManualRevisao,
     handleRemoveRevisao,
